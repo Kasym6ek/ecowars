@@ -236,6 +236,7 @@ function onJoined({teams, round, security, myWealth}) {
   P.round = round;
   P.wealth = myWealth;
   renderTeamPicker();
+  toast('Команда тізімі жаңартылды!', 'ok');
 }
 
 function onRoundStart({round, security, teams}) {
@@ -258,31 +259,51 @@ function onRoundResult(data) {
   showResultScreen(data);
 }
 
+const DEFAULT_TEAMS = [
+  {id:0,name:'Alpha',color:'#00e5ff',emoji:'🔵'},
+  {id:1,name:'Beta', color:'#ff6b35',emoji:'🟠'},
+  {id:2,name:'Gamma',color:'#c084fc',emoji:'🟣'},
+  {id:3,name:'Delta',color:'#00ff9d',emoji:'🟢'},
+  {id:4,name:'Omega',color:'#fbbf24',emoji:'🟡'},
+];
+
+// Бет жүктелгенде команда тізімін бірден көрсету
+window.addEventListener('load', () => renderTeamPicker());
+
 function joinGame() {
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
   const name = document.getElementById('nameInput').value.trim();
-  const url = document.getElementById('serverUrl').value.trim() || window.location.origin;
-  if (code.length < 4) { toast('4 таңбалы код','err'); return; }
+  const url = (document.getElementById('serverUrl').value.trim() || window.location.origin).replace(/\/$/,'');
+  if (code.length < 4) { toast('4 таңбалы код енгізіңіз','err'); return; }
   if (!name) { toast('Есімді енгізіңіз','err'); return; }
   if (P.teamId < 0) { toast('Команда таңдаңыз','err'); return; }
-  if (!P.socket) connectSocket(url);
 
   P.code = code; P.name = name;
-  const team = P.teams.find(t=>t.id===P.teamId);
-  if (team) { P.teamName=team.name; P.teamColor=team.color; }
+  const teams = P.teams.length ? P.teams : DEFAULT_TEAMS;
+  const team = teams.find(t=>t.id===P.teamId) || DEFAULT_TEAMS[P.teamId];
+  P.teamName = team.name; P.teamColor = team.color;
 
-  P.socket.emit('player:join', {code, teamId:P.teamId, playerName:name});
+  const doJoin = () => P.socket.emit('player:join', {code, teamId:P.teamId, playerName:name});
 
-  document.getElementById('myTeamNameWait').textContent = (team?.emoji||'') + ' ' + (team?.name || `Команда ${P.teamId+1}`);
+  if (!P.socket) {
+    connectSocket(url);
+    P.socket.once('connect', doJoin);
+  } else if (P.socket.connected) {
+    doJoin();
+  } else {
+    P.socket.once('connect', doJoin);
+  }
+
+  document.getElementById('myTeamNameWait').textContent = team.emoji + ' ' + team.name;
   document.getElementById('myTeamNameWait').style.color = P.teamColor;
   document.getElementById('myRoomCode').textContent = code;
   showScreen('wait');
-  toast('Қосылдыңыз!','ok');
+  toast('Қосылуда...','ok');
 }
 
 function renderTeamPicker() {
-  if (!P.teams.length) return;
-  document.getElementById('teamPicker').innerHTML = P.teams.map(t => `
+  const teams = P.teams.length ? P.teams : DEFAULT_TEAMS;
+  document.getElementById('teamPicker').innerHTML = teams.map(t => `
     <div class="team-btn ${P.teamId===t.id?'sel':''}" onclick="selectTeam(${t.id})"
       style="${P.teamId===t.id?`border-color:${t.color};background:${t.color}22;`:''}">
       <div class="team-btn-emoji">${t.emoji}</div>
