@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoWars</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:sans-serif;background:#06090f;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.box{text-align:center;padding:40px;}
+h1{font-size:48px;font-weight:900;letter-spacing:4px;background:linear-gradient(90deg,#00e5ff,#00ff9d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+p{color:#64748b;margin-bottom:32px;font-size:14px;letter-spacing:2px;}
+.btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+a{display:inline-flex;align-items:center;gap:8px;padding:16px 32px;border-radius:12px;
+  text-decoration:none;font-weight:700;font-size:15px;transition:all .25s;text-transform:uppercase;letter-spacing:1px;}
+.host{background:linear-gradient(135deg,#00e5ff,#009ab5);color:#06090f;box-shadow:0 4px 20px rgba(0,229,255,.3);}
+.host:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,229,255,.5);}
+.player{background:transparent;color:#e2e8f0;border:1px solid #1a2540;}
+.player:hover{border-color:#00e5ff;color:#00e5ff;}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>ECOWARS</h1>
+  <p>ЭКОНОМИКАЛЫҚ СТРАТЕГИЯ ОЙЫНЫ</p>
+  <div class="btns">
+    <a href="/host.html" class="host">🖥️ HOST (Проектор)</a>
+    <a href="/player.html" class="player">📱 PLAYER (Телефон)</a>
+  </div>
+</div>
+</body>
+</html>
