@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EcoWars — PLAYER</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+:root{--bg:#06090f;--bg2:#0c1019;--bg3:#111827;--panel:#0f1623;--border:#1a2540;
+  --accent:#00e5ff;--green:#00ff9d;--orange:#ff6b35;--purple:#c084fc;--gold:#fbbf24;--red:#f43f5e;--text:#e2e8f0;--text2:#64748b;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 100% 60% at 50% 0%,rgba(0,229,255,.06) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;padding:16px;}
+.screen{display:none;flex:1;flex-direction:column;}.screen.on{display:flex;}
+
+/* JOIN */
+.join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;}
+.logo{font-family:'Orbitron',monospace;font-size:34px;font-weight:900;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);letter-spacing:4px;text-transform:uppercase;}
+.server-input{width:100%;max-width:320px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;
+  padding:12px 16px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .3s;}
+.server-input:focus{border-color:var(--accent);}
+.big-input{width:100%;max-width:320px;background:var(--bg2);border:2px solid var(--border);border-radius:14px;
+  padding:18px 20px;color:var(--text);font-family:'Orbitron',monospace;font-size:28px;font-weight:700;
+  text-align:center;letter-spacing:6px;text-transform:uppercase;outline:none;transition:border-color .3s;}
+.big-input:focus{border-color:var(--accent);}
+.name-input{width:100%;max-width:320px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;
+  padding:14px 18px;color:var(--text);font-family:'Syne',sans-serif;font-size:16px;font-weight:700;
+  text-align:center;outline:none;transition:border-color .3s;}
+.name-input:focus{border-color:var(--accent);}
+.team-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:320px;}
+.team-btn{background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:10px 4px;cursor:pointer;text-align:center;transition:all .25s;}
+.team-btn.sel{border-color:var(--accent);background:rgba(0,229,255,.1);}
+.team-btn-emoji{font-size:18px;}.team-btn-name{font-size:9px;color:var(--text2);margin-top:3px;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:320px;
+  padding:16px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;
+  cursor:pointer;transition:all .25s;text-transform:uppercase;letter-spacing:1px;}
+.btn-glow{background:linear-gradient(135deg,var(--accent),#009ab5);color:var(--bg);box-shadow:0 4px 24px rgba(0,229,255,.35);}
+.btn-glow:active{transform:scale(.97);}
+.btn-green{background:linear-gradient(135deg,var(--green),#00b36e);color:var(--bg);box-shadow:0 4px 24px rgba(0,255,157,.3);}
+.btn-green:active{transform:scale(.97);}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+
+/* WAIT */
+.wait-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;}
+.pulse-ring{width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.15);opacity:.5;}}
+.wait-title{font-family:'Orbitron',monospace;font-size:18px;color:var(--accent);letter-spacing:2px;}
+.wait-sub{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);}
+.my-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 24px;text-align:center;}
+
+/* INVEST */
+.invest-header{padding:12px 0 8px;display:flex;align-items:center;justify-content:space-between;}
+.round-pill{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);padding:6px 14px;border-radius:100px;letter-spacing:2px;}
+.wealth-badge{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--green);}
+.sectors{display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto;padding-bottom:8px;}
+.sector-card{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:14px 16px;transition:border-color .3s;}
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-icon-name{display:flex;align-items:center;gap:8px;}
+.sec-icon{font-size:20px;}.sec-name{font-size:15px;font-weight:700;}.sec-info{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.sec-amount{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;}
+input[type=range]{width:100%;height:8px;-webkit-appearance:none;border-radius:4px;outline:none;cursor:pointer;background:var(--bg3);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid var(--bg);}
+.budget-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:10px;}
+.budget-fill{height:100%;border-radius:3px;transition:width .4s,background .4s;}
+.budget-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:4px;}
+.budget-label{font-size:13px;color:var(--text2);}
+.budget-left{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;}
+.budget-left.ok{color:var(--green);}.budget-left.over{color:var(--red);}.budget-left.zero{color:var(--accent);}
+
+/* RESULT */
+.result-screen{flex:1;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.result-header{font-family:'Orbitron',monospace;font-size:20px;color:var(--accent);text-align:center;letter-spacing:2px;padding:8px 0;}
+.my-result-card{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:20px;text-align:center;}
+.my-result-wealth{font-family:'Orbitron',monospace;font-size:36px;font-weight:900;color:var(--green);}
+.my-result-change{font-family:'JetBrains Mono',monospace;font-size:16px;margin-top:4px;}
+.my-result-change.up{color:var(--green);}.my-result-change.down{color:var(--red);}
+.roi-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.roi-mini{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+.roi-mini-icon{font-size:18px;}.roi-mini-name{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:1px;margin:2px 0;}
+.roi-mini-val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;}
+.terror-card{background:rgba(244,63,94,.1);border:2px solid var(--red);border-radius:12px;padding:14px;text-align:center;animation:tGlow 1s ease-in-out infinite alternate;}
+@keyframes tGlow{0%{box-shadow:0 0 10px rgba(244,63,94,.2);}100%{box-shadow:0 0 30px rgba(244,63,94,.5);}}
+.terror-mini-title{font-family:'Orbitron',monospace;font-size:14px;color:var(--red);letter-spacing:2px;}
+.lb-mini{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.lb-mini-rank{font-family:'JetBrains Mono',monospace;font-size:12px;width:24px;}
+.lb-mini-name{flex:1;font-size:14px;font-weight:700;}
+.lb-mini-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);}
+
+/* FINAL */
+.final-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:20px;}
+.final-title{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;background:linear-gradient(90deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px;}
+.my-place-badge{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:40px;font-weight:900;border:3px solid var(--gold);background:rgba(251,191,36,.1);color:var(--gold);}
+
+.pos{color:var(--green);}.neg{color:var(--red);}.neu{color:var(--text2);}
+.divider{height:1px;background:var(--border);margin:8px 0;}
+.toast-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;}
+.toast{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;white-space:nowrap;animation:tIn .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+@keyframes tIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.toast.ok{border-bottom:2px solid var(--green);}.toast.err{border-bottom:2px solid var(--red);}
+</style>
+</head>
+<body>
+<div class="toast-wrap" id="toaster"></div>
+<div class="wrap">
+
+<!-- JOIN -->
+<div class="screen on" id="s-join">
+  <div class="join-wrap">
+    <div><div class="logo">ECOWARS</div><div class="logo-sub" style="text-align:center;margin-top:6px;">PLAYER</div></div>
+
+    <div style="width:100%;max-width:320px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Сервер URL</div>
+      <input class="server-input" id="serverUrl" placeholder="https://ecowars.onrender.com" value="">
+    </div>
+
+    <input class="big-input" id="codeInput" placeholder="XXXX" maxlength="4"
+      oninput="this.value=this.value.toUpperCase();onCodeInput()" autocomplete="off" spellcheck="false">
+
+    <input class="name-input" id="nameInput" placeholder="Есіміңіз...">
+
+    <div style="width:100%;max-width:320px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;text-align:center;">Команданы таңдаңыз</div>
+      <div class="team-picker" id="teamPicker">
+        <div style="color:var(--text2);font-size:12px;text-align:center;grid-column:1/-1;padding:8px;">Серверге қосылыңыз...</div>
+      </div>
+    </div>
+
+    <button class="btn btn-glow" onclick="joinGame()">🎮 ҚОСЫЛУ</button>
+  </div>
+</div>
+
+<!-- WAIT -->
+<div class="screen" id="s-wait">
+  <div class="wait-screen">
+    <div class="pulse-ring"></div>
+    <div class="wait-title">ОЙЫН БАСТАЛУДА...</div>
+    <div class="wait-sub">HOST ойынды бастаса автоматты қосыласыз</div>
+    <div class="my-card">
+      <div id="myTeamNameWait" style="font-size:20px;font-weight:800;">—</div>
+      <div id="myWealthWait" style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text2);margin-top:4px;">💰 200 млрд</div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);">
+      Бөлме: <span id="myRoomCode" style="color:var(--accent);letter-spacing:3px;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- INVEST -->
+<div class="screen" id="s-invest">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div class="invest-header">
+      <div id="invRoundPill" class="round-pill">РАУНД 1/5</div>
+      <div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);">Байлық: </span>
+        <span class="wealth-badge" id="invWealth">200₿</span>
+      </div>
+    </div>
+    <div class="sectors" id="sectorsWrap"></div>
+    <div class="budget-footer">
+      <div class="budget-label">Қалдық бюджет</div>
+      <div class="budget-left ok" id="budgetLeft">0 млрд</div>
+    </div>
+    <div class="budget-bar" style="margin-bottom:10px;">
+      <div class="budget-fill" id="budgetFill" style="width:100%;background:var(--accent);"></div>
+    </div>
+    <div style="padding:8px 0 4px;">
+      <button class="btn btn-green" onclick="submitInvest()" id="submitBtn">✅ ЖІБЕРУ</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="s-result">
+  <div class="result-screen" id="resultContent"></div>
+  <div style="padding:12px 0 4px;text-align:center;">
+    <div class="wait-sub">Келесі раунд басталуда...</div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="screen" id="s-final">
+  <div class="final-screen">
+    <div class="final-title">🏆 ФИНАЛ</div>
+    <div class="my-place-badge" id="myPlaceBadge">?</div>
+    <div id="myFinalName" style="font-size:20px;font-weight:800;"></div>
+    <div id="myFinalScore" style="font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--text2);"></div>
+    <div id="finalLBMini" style="width:100%;max-width:360px;"></div>
+    <button class="btn btn-outline" onclick="location.reload()" style="max-width:200px;margin-top:8px;">🔄 Қайта</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const SC = {oil:'#ff6b35',industry:'#00e5ff',assets:'#c084fc',defense:'#00ff9d',reserve:'#fbbf24'};
+const SI = {oil:'🛢',industry:'🏭',assets:'📈',defense:'🛡',reserve:'💰'};
+const SN = {oil:'Мұнай',industry:'Өндіріс',assets:'Активтер',defense:'Қауіпсіздік',reserve:'Резерв'};
+const SINFO = {oil:'Жоғары тәуекел',industry:'Тұрақты',assets:'Спекулятив',defense:'Collective',reserve:'Қорғаныш'};
+
+let P = {
+  socket: null, code:'', name:'', teamId:-1,
+  teamName:'', teamColor:'#00e5ff',
+  wealth:200, lastWealth:200, round:1,
+  teams:[], invest:{oil:40,industry:40,assets:40,defense:40,reserve:40},
+  submitted:false
+};
+
+function onCodeInput() {
+  const code = document.getElementById('codeInput').value;
+  const url = document.getElementById('serverUrl').value.trim() || window.location.origin;
+  if (code.length === 4 && !P.socket) connectSocket(url);
+}
+
+function connectSocket(url) {
+  try {
+    P.socket = io(url);
+    P.socket.on('connect', () => toast('Сервер: қосылды ✓','ok'));
+    P.socket.on('error', ({msg}) => toast(msg,'err'));
+    P.socket.on('player:joined', onJoined);
+    P.socket.on('round:start', onRoundStart);
+    P.socket.on('round:result', onRoundResult);
+    P.socket.on('game:final', ({sorted}) => showFinalScreen(sorted));
+    P.socket.on('invest:confirmed', () => { toast('Жіберілді ✓','ok'); });
+  } catch(e) { toast('Сервер табылмады','err'); }
+}
+
+function onJoined({teams, round, security, myWealth}) {
+  P.teams = teams;
+  P.round = round;
+  P.wealth = myWealth;
+  renderTeamPicker();
+}
+
+function onRoundStart({round, security, teams}) {
+  P.round = round;
+  P.submitted = false;
+  P.invest = {oil:40,industry:40,assets:40,defense:40,reserve:40};
+  const me = teams.find(t=>t.id===P.teamId);
+  if (me) P.wealth = me.wealth;
+  showScreen('invest');
+  renderSectors();
+  document.getElementById('invRoundPill').textContent = `РАУНД ${P.round}/5`;
+  document.getElementById('invWealth').textContent = `${P.wealth}₿`;
+  document.getElementById('submitBtn').textContent = '✅ ЖІБЕРУ';
+  document.getElementById('submitBtn').style.opacity = '1';
+}
+
+function onRoundResult(data) {
+  const me = data.teams.find(t=>t.id===P.teamId);
+  if (me) { P.lastWealth = P.wealth; P.wealth = me.wealth; }
+  showResultScreen(data);
+}
+
+function joinGame() {
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  const name = document.getElementById('nameInput').value.trim();
+  const url = document.getElementById('serverUrl').value.trim() || window.location.origin;
+  if (code.length < 4) { toast('4 таңбалы код','err'); return; }
+  if (!name) { toast('Есімді енгізіңіз','err'); return; }
+  if (P.teamId < 0) { toast('Команда таңдаңыз','err'); return; }
+  if (!P.socket) connectSocket(url);
+
+  P.code = code; P.name = name;
+  const team = P.teams.find(t=>t.id===P.teamId);
+  if (team) { P.teamName=team.name; P.teamColor=team.color; }
+
+  P.socket.emit('player:join', {code, teamId:P.teamId, playerName:name});
+
+  document.getElementById('myTeamNameWait').textContent = (team?.emoji||'') + ' ' + (team?.name || `Команда ${P.teamId+1}`);
+  document.getElementById('myTeamNameWait').style.color = P.teamColor;
+  document.getElementById('myRoomCode').textContent = code;
+  showScreen('wait');
+  toast('Қосылдыңыз!','ok');
+}
+
+function renderTeamPicker() {
+  if (!P.teams.length) return;
+  document.getElementById('teamPicker').innerHTML = P.teams.map(t => `
+    <div class="team-btn ${P.teamId===t.id?'sel':''}" onclick="selectTeam(${t.id})"
+      style="${P.teamId===t.id?`border-color:${t.color};background:${t.color}22;`:''}">
+      <div class="team-btn-emoji">${t.emoji}</div>
+      <div class="team-btn-name" style="color:${t.color}">${t.name}</div>
+    </div>`).join('');
+}
+
+function selectTeam(id) {
+  P.teamId = id;
+  const t = P.teams.find(x=>x.id===id);
+  if (t) { P.teamName=t.name; P.teamColor=t.color; }
+  renderTeamPicker();
+}
+
+function renderSectors() {
+  document.getElementById('sectorsWrap').innerHTML = ['oil','industry','assets','defense','reserve'].map(s => `
+    <div class="sector-card" id="sc_${s}">
+      <div class="sec-row">
+        <div class="sec-icon-name">
+          <span class="sec-icon">${SI[s]}</span>
+          <div><div class="sec-name" style="color:${SC[s]}">${SN[s]}</div><div class="sec-info">${SINFO[s]}</div></div>
+        </div>
+        <div class="sec-amount" style="color:${SC[s]}" id="amt_${s}">40 млрд</div>
+      </div>
+      <input type="range" id="sl_${s}" min="0" max="200" step="5" value="40"
+        style="accent-color:${SC[s]};" oninput="onSlider('${s}')">
+      <div class="budget-bar" style="margin-top:6px;">
+        <div style="height:100%;border-radius:3px;background:${SC[s]};transition:width .3s;width:20%;" id="sbar_${s}"></div>
+      </div>
+    </div>`).join('');
+  updateBudget();
+}
+
+function onSlider(s) {
+  const v = parseInt(document.getElementById(`sl_${s}`).value);
+  P.invest[s] = v;
+  document.getElementById(`amt_${s}`).textContent = `${v} млрд`;
+  document.getElementById(`sbar_${s}`).style.width = `${(v/200*100).toFixed(0)}%`;
+  updateBudget();
+}
+
+function updateBudget() {
+  const total = Object.values(P.invest).reduce((s,v)=>s+v,0);
+  const left = 200 - total;
+  const el = document.getElementById('budgetLeft');
+  el.textContent = `${left} млрд`;
+  el.className = `budget-left ${left<0?'over':left===0?'zero':'ok'}`;
+  const fill = document.getElementById('budgetFill');
+  fill.style.width = `${Math.min(100,total/200*100).toFixed(0)}%`;
+  fill.style.background = left<0?'var(--red)':left===0?'var(--green)':'var(--accent)';
+}
+
+function submitInvest() {
+  if (Object.values(P.invest).reduce((s,v)=>s+v,0) > 200) { toast('Бюджет асып кетті!','err'); return; }
+  if (P.submitted) { toast('Жіберілді ✓','ok'); return; }
+  P.submitted = true;
+  P.socket.emit('player:invest', {invest:{...P.invest}});
+  document.getElementById('submitBtn').textContent = '✅ ЖІБЕРІЛДІ — ХОСТ КҮТЕДІ';
+  document.getElementById('submitBtn').style.opacity = '0.6';
+}
+
+function showResultScreen(data) {
+  showScreen('result');
+  const {rois, totals, terror, terrorList, teams} = data;
+  const delta = P.wealth - P.lastWealth;
+  const myOil = Math.round(P.invest.oil * rois.oil);
+  const myInd = Math.round(P.invest.industry * rois.industry);
+  const myAst = Math.round(P.invest.assets * rois.assets);
+  const myPen = terrorList?.find(x=>x.name===P.teamName);
+
+  document.getElementById('resultContent').innerHTML = `
+    <div class="result-header">РАУНД ${P.round} НӘТИЖЕСІ</div>
+    <div class="my-result-card">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">${P.teamName}</div>
+      <div class="my-result-wealth">${P.wealth}₿</div>
+      <div class="my-result-change ${delta>=0?'up':'down'}">${delta>=0?'+':''}${delta} млрд</div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin:4px 0;">Менің нәтижем</div>
+    <div class="roi-mini-grid">
+      <div class="roi-mini" style="border-color:#ff6b3533;"><div class="roi-mini-icon">🛢</div><div class="roi-mini-name">МҰНАЙ</div><div class="roi-mini-val ${myOil>=0?'pos':'neg'}">${myOil>=0?'+':''}${myOil}</div></div>
+      <div class="roi-mini" style="border-color:#00e5ff33;"><div class="roi-mini-icon">🏭</div><div class="roi-mini-name">ӨНДІРІС</div><div class="roi-mini-val pos">+${myInd}</div></div>
+      <div class="roi-mini" style="border-color:#c084fc33;"><div class="roi-mini-icon">📈</div><div class="roi-mini-name">АКТИВТЕР</div><div class="roi-mini-val ${myAst>=0?'pos':'neg'}">${myAst>=0?'+':''}${myAst}</div></div>
+    </div>
+    ${terror?`<div class="terror-card"><div class="terror-mini-title">🚨 TERROR SHOCK!</div><div style="font-size:12px;color:var(--text2);margin-top:4px;">${myPen?`Айып: <strong style="color:var(--red)">-${myPen.penalty} млрд</strong>`:'Резервіңіз қорғады ✓'}</div></div>`:''}
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin:8px 0 4px;">РЕЙТИНГ</div>
+    ${[...teams].sort((a,b)=>b.wealth-a.wealth).map((t,i)=>{
+      const team=P.teams.find(x=>x.id===t.id);
+      const isMe=t.id===P.teamId;
+      const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+      return `<div class="lb-mini" style="${isMe?`border-color:${P.teamColor};background:${P.teamColor}11;`:''}">
+        <div class="lb-mini-rank">${medals[i]}</div>
+        <div class="lb-mini-name" style="color:${team?.color||'#fff'}">${team?.emoji||''} ${team?.name||'?'}${isMe?' (сен)':''}</div>
+        <div class="lb-mini-val">${t.wealth}₿</div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function showFinalScreen(sorted) {
+  showScreen('final');
+  const myRank = sorted.findIndex(t=>t.id===P.teamId);
+  const rankNums=['1','2','3','4','5'];
+  document.getElementById('myPlaceBadge').textContent = rankNums[myRank]||'?';
+  document.getElementById('myPlaceBadge').style.color = myRank===0?'var(--gold)':myRank===1?'#94a3b8':'var(--text)';
+  document.getElementById('myFinalName').textContent = P.teamName;
+  document.getElementById('myFinalName').style.color = P.teamColor;
+  const me = sorted[myRank];
+  document.getElementById('myFinalScore').textContent = me?`Скор: ${me.score} ұпай`:'';
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  document.getElementById('finalLBMini').innerHTML = sorted.map((t,i)=>{
+    const team=P.teams.find(x=>x.id===t.id);
+    const isMe=t.id===P.teamId;
+    return `<div class="lb-mini" style="${isMe?`border-color:${P.teamColor};background:${P.teamColor}11;`:''}">
+      <div class="lb-mini-rank">${medals[i]}</div>
+      <div class="lb-mini-name" style="color:${team?.color||'#fff'}">${team?.emoji||''} ${team?.name||'?'}${isMe?' ★':''}</div>
+      <div class="lb-mini-val" style="color:var(--gold)">${t.score}</div>
+    </div>`;
+  }).join('');
+}
+
+function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById('s-'+n).classList.add('on');}
+function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast ${type==='ok'?'ok':type==='err'?'err':''}`;el.textContent=msg;document.getElementById('toaster').appendChild(el);setTimeout(()=>el.remove(),3000);}
+</script>
+</body>
+</html>
