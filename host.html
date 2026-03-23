@@ -331,7 +331,7 @@ socket.on('round:result', (data) => {
   G.investments = {};
   data.teams.forEach(t => {
     const team = G.teams.find(x=>x.id===t.id);
-    if (team) { team.wealth=t.wealth; team.trust=t.trust; }
+    if (team) { team.wealth = t.wealth; }
   });
   G.security = data.security;
   G.secHistory = data.secHistory;
@@ -423,7 +423,22 @@ function renderInvestSummary() {
 }
 
 function hostReveal() { socket.emit('host:reveal'); }
-function hostNext() { G.round++; socket.emit('host:next_round'); }
+
+function hostNext() {
+  socket.emit('host:next_round');
+  if (G.round < 5) {
+    G.round++;
+    G.readyTeams = {};
+    G.investments = {};
+    document.getElementById('roundPill').textContent = `РАУНД ${G.round}/5`;
+    document.getElementById('phaseTag').textContent = 'ИНВЕСТИЦИЯ';
+    document.getElementById('ph-invest').style.display = 'block';
+    document.getElementById('ph-reveal').style.display = 'none';
+    document.getElementById('terrorBox').classList.remove('show');
+    renderTeamStatus();
+    document.getElementById('investSummary').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:12px;">Командалар бөлуде...</div>';
+  }
+}
 
 // ── RESULTS ──
 function renderROIs(rois, totals) {
@@ -450,15 +465,13 @@ function renderLeaderboard() {
   const max=sorted[0].wealth||1;
   const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
   document.getElementById('leaderboard').innerHTML=sorted.map((t,i)=>{
-    const score=Math.round(t.wealth+t.trust*4)+(t.trust<30?-50:0);
     return `<div class="lb-row" style="border-left:3px solid ${t.color};">
       <div class="lb-rank">${medals[i]}</div>
       <div class="lb-name" style="color:${t.color}">${t.emoji} ${t.name}</div>
       <div class="lb-vals">
         <div class="lb-val"><div class="lb-val-lbl">БАЙЛЫҚ</div><div class="lb-val-num pos">${t.wealth}₿</div>
           <div class="bar-wrap"><div class="bar-fill" style="width:${(t.wealth/max*100).toFixed(0)}%;background:${t.color}"></div></div></div>
-        <div class="lb-val"><div class="lb-val-lbl">СЕНІМ</div><div class="lb-val-num ${t.trust<30?'neg':'pos'}">${t.trust}</div></div>
-        <div class="lb-val"><div class="lb-val-lbl">СКОР</div><div class="lb-val-num" style="color:var(--gold);font-size:16px;">${score}</div></div>
+        <div class="lb-val"><div class="lb-val-lbl">СКОР</div><div class="lb-val-num" style="color:var(--gold);font-size:16px;">${t.wealth}₿</div></div>
       </div></div>`;
   }).join('');
 }
