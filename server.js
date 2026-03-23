@@ -45,7 +45,6 @@ function calcRound(room) {
       else if (inv.reserve >= 20) penalty *= .8;
       penalty = Math.round(penalty);
       terrorList.push({id:t.id, name:t.name, penalty});
-      t.trust = Math.max(0, t.trust - (s<40?10:s<60?6:3));
     }
     t.wealth = Math.max(0, Math.round(t.wealth + delta - penalty));
   });
@@ -57,7 +56,7 @@ function calcRound(room) {
     if (h) h.data.push(t.wealth);
   });
 
-  return { rois, totals, terror, terrorList, teams: room.teams.map(t=>({id:t.id,wealth:t.wealth,trust:t.trust})) };
+  return { rois, totals, terror, terrorList, teams: room.teams.map(t=>({id:t.id, wealth:t.wealth})) };
 }
 
 // ─── SOCKET ───
@@ -69,7 +68,7 @@ io.on('connection', socket => {
     rooms[code] = {
       code, phase:'invest', round:1,
       security:70, secHistory:[70],
-      teams: teams.map((t,i) => ({id:i, name:t.name, color:t.color, emoji:t.emoji, wealth:200, trust:80})),
+      teams: teams.map((t,i) => ({id:i, name:t.name, color:t.color, emoji:t.emoji, wealth:200})),
       investments:{}, readyTeams:new Set(),
       wealthHistory:[], hostId:socket.id
     };
@@ -140,7 +139,7 @@ io.on('connection', socket => {
     if (!room || !socket.isHost) return;
     if (room.round >= 5) {
       const sorted = [...room.teams]
-        .map(t=>({...t, score:Math.round(t.wealth+t.trust*4)+(t.trust<30?-50:0)}))
+        .map(t=>({...t, score: t.wealth}))
         .sort((a,b)=>b.score-a.score);
       io.to(room.code).emit('game:final', {sorted, wealthHistory:room.wealthHistory});
     } else {
